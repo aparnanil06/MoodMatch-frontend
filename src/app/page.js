@@ -1,103 +1,125 @@
-import Image from "next/image";
+"use client"; //tells Next.js this file runs in browser not just server
+import { useState } from "react"; //use useState hook from react to store and update data
+import { useRouter } from "next/navigation";
 
+//defines main component of homepage, export default makes this get loaded when someone visits the site
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  //sets the user inputted mood, runtime, and movie selection
+  const [moodInput, setMoodInput] = useState("");
+  const [runtimeInput, setRuntimeInput] = useState("90");
+  const [movies, setMovies] = useState([]);
+  const [favorites, setFavorites] = useState("");
+  const router = useRouter();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  //defined an asynchronous function, e is the event object passed fromt he form submit
+  //async lets us use await to pause for things like fetch() inside the function
+  const handleSubmit = async (e) => {
+    console.log("Form was submitted");
+    //prevents the default behavior of form submission (reloading)
+    e.preventDefault();
+    //uses fetch() to send a POST request to Flask backend
+    //we away result because its asynchronous
+    //frontend and backend connect here
+    const response = await fetch("http://localhost:5001/recommend", {
+      //tells backend we are sending POST request with body in JSON format
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      //creates a JavaScript object then converst it into a JSON string to send in request
+      //Number(runtime) makes sure runtime is sent as number not string
+      body: JSON.stringify({
+        mood: moodInput,
+        runtime: Number(runtimeInput)
+      }),
+      credentials: "include"
+    }); // closes fetch() call
+    //awaits response from backend and converts it into a JavaScript object from JSON now held in 'data'
+    const data = await response.json();
+    console.log("Received data from backend:", data);
+    //updates movies state with movie results
+    //is nothing is sent it falls back to an empty list
+    setMovies(data.movies || []);
+  };
+  const handleSaveMovie = async (movie) => {
+    try {
+      const response = await fetch("http://localhost:5001/save_favorite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: movie.title,
+          overview: movie.overview,
+          mood: moodInput,
+        }),
+        credentials: "include"
+      });
+      const result = await response.json();
+      alert(result.message || "Saved!");
+
+    } catch(err) {
+      alert("Failed to save favorite.");
+      console.error(err);
+    }
+
+  };
+
+  const handleViewFavorites = async () => {
+    router.push("/favorites");
+  };
+  //this is the JSX (React's HTML like syntax that says what to show on this page)
+  return (
+    //semantic HTML element for the main content
+    <main> 
+      <h1>MoodMatch 🎬</h1>
+
+      <button type="button" onClick={handleViewFavorites}>View Favorites</button>
+
+        {favorites && (
+          <div style={{ marginTop: "2rem" }}>
+            <h2>Favorites:</h2>
+            <pre style={{ whiteSpace: "pre-wrap" }}>{favorites}</pre>
+          </div>
+        )}
+        <br /><br />
+
+      <form onSubmit={handleSubmit}> 
+        <label>
+          How are you feeling? 
+          <input
+            type="text"
+            value={moodInput}
+            onChange={(e) => setMoodInput(e.target.value)}
+          />
+        </label>
+        <br /><br />
+
+        <label>
+          How much time do you have?
+          <select value={runtimeInput} onChange={(e) => setRuntimeInput(e.target.value)}>
+            <option value="60">Less than 60 min</option>
+            <option value="90">Up to 90 min</option>
+            <option value="120">Up to 120 min</option>
+          </select>
+        </label>
+        <br /><br />
+
+        <button type="submit">Get Recommendations</button>
+      </form>
+      {movies.length > 0 && (
+        <div>
+          <h2>Recommendations:</h2>
+          {movies.map((movie, i) => (
+            <div key={i} style={{ marginBottom: "1rem" }}>
+              <h3>{movie.title}</h3>
+              <p>{movie.overview}</p>
+              <button onClick={() => handleSaveMovie(movie)}>Save to Favorites</button>
+            </div>
+          ))}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        
+      )}
+    </main>
   );
 }
