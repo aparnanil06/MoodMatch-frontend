@@ -19,12 +19,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
+      <body className="min-h-screen bg-gray-50 text-gray-900 flex flex-col items-center p-8"
+      suppressHydrationWarning={true}
       >
-        <div className="text-3xl text-red-500">Tailwind is working!</div>
         {children}
       </body>
     </html>
   );
 }
+

@@ -40,6 +40,32 @@ export default function FavoritesPage() {
     }
   };
 
+  function parseFavorites(text) {
+    return text
+        .split(/\n\s*\n/) // split on blank lines
+        .map((chunk) => {
+        if (!chunk.trim()) return null; // skip empty chunks
+
+        const lines = chunk.split("\n").map((line) => line.trim()).filter(Boolean);
+        const firstLine = lines[0];
+        const rest = lines.slice(1);
+
+        const match = firstLine.match(
+            /^(.+?) \((\d{4}-\d{2}-\d{2}), Mood:\s*(.+?)\)$/
+        );
+        if (!match) return null;
+
+        const [, title, date, mood] = match;
+        const overview = rest.join(" ").trim();
+        return { title, date, mood, overview };
+        })
+        .filter(Boolean);
+    }
+
+  const items = !loading && favorites ? parseFavorites(favorites) : [];
+
+  
+
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900 flex flex-col items-center px-4 py-10 space-y-8">
         <button onClick={() => window.history.back()}
@@ -58,9 +84,26 @@ export default function FavoritesPage() {
       <br />
       {loading ? (
         <p>Loading...</p>
+      ) : items.length === 0 ? (
+        <p className="text-gray-500">No favorites saved yet.</p>
       ) : (
-        <pre style={{ whiteSpace: "pre-wrap" }}>{favorites}</pre>
+        <div className="w-full max-w-3xl grid gap-4">
+            {items.map((fav, i) =>
+            <div
+                key={i}
+                className="bg-white rounded-2xl shadow p-4 border border-gray-200"
+            >
+                <h2 className="text-lg font-semibold">{fav.title}</h2>
+                <p className="text-sm text-gray-500">
+                    {fav.date} • Mood: {fav.mood}
+                </p>
+                <p className="mt-2 text-gray-800 leading-relaxed">{fav.overview}</p>
+            </div>
+            )}
+        </div>
       )}
+      
+
       
     </main>
   );
