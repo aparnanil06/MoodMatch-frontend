@@ -1,6 +1,7 @@
 "use client"; //tells Next.js this file runs in browser not just server
 import { useState } from "react"; //use useState hook from react to store and update data
 import { useRouter } from "next/navigation";
+import MovieCard from "./MovieCard";
 import "../styles/globals.css";
 
 const TMDB_IMG_BASE = "https://image.tmdb.org/t/p/w342";
@@ -34,11 +35,11 @@ export default function Home() {
         mood: moodInput,
         runtime: Number(runtimeInput)
       }),
-      credentials: "include"
     }); // closes fetch() call
     //awaits response from backend and converts it into a JavaScript object from JSON now held in 'data'
     const data = await response.json();
     console.log("Received data from backend:", data);
+    console.log("Movies with watch providers: ", data.movies);
     //updates movies state with movie results
     //is nothing is sent it falls back to an empty list
     setMovies(data.movies || []);
@@ -57,8 +58,10 @@ export default function Home() {
           overview: movie.overview,
           mood: moodInput,
           poster_path: movie.poster_path,
+          watch_providers: movie.watch_providers,
+          release_date: movie.release_date,
+          vote_average: movie.vote_average,
         }),
-        credentials: "include"
       });
       if (response.status == 409) {
         const msg = await response.json().catch(() => ({}));
@@ -94,12 +97,24 @@ export default function Home() {
       <form onSubmit={handleSubmit}> 
         <label className="block font-medium">
           How are you feeling? 
-          <input
-            type="text"
+          <select
             value={moodInput}
             onChange={(e) => setMoodInput(e.target.value)}
             className="w-full mt-1 p-2 border border-gray-300 rounded"
-          />
+          >
+            <option value="happy">Happy</option>
+            <option value="sad">Sad</option>
+            <option value="stressed">Stressed</option>
+            <option value="dramatic">Dramatic</option>
+            <option value="lonely">Lonely</option>
+            <option value="curious">Curious</option>
+            <option value="kid-friendly">Kid-friendly</option>
+            <option value="angry">Angry</option>
+            <option value="excited">Excited</option>
+            <option value="romantic">Romantic</option>
+            <option value="scary">Scary</option>
+            <option value="funny">Funny</option>
+          </select>
         </label>
         <br /><br />
 
@@ -129,37 +144,11 @@ export default function Home() {
         <div className="w-full max-w-2xl space-y-6">
           <h2 className="text-2xl font-semibold text-gray-800">Recommendations:</h2>
           {movies.map((movie, i) => (
-            <div 
-              key={i} 
-              className="bg-white border border-gray-200 rounded shadow p-4"
-            >
-              <div className="flex items-start gap-4">
-                {/* Poster */}
-                {movie.poster_path ? (
-                  <img
-                    src={`${TMDB_IMG_BASE}${movie.poster_path || ""}`}
-                    alt={movie.title}
-                    className="w-24 h-36 object-cover rounded shadow"
-                  />
-                ) : (
-                  <div className="w-24 h-36 bg-gray-200 rounded" />
-                )}
-
-                {/* Text Content */}
-                <div className="flex-1">
-                  <div>
-                    <h3 className="text-lg font-bold">{movie.title}</h3>
-                    <p className="text-gray-700 text-sm mt-2">{movie.overview}</p>
-                  </div>
-                  <button 
-                    onClick={() => handleSaveMovie(movie)}
-                    className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded self-start"
-                    >
-                      Save to Favorites
-                  </button>
-                </div>
-              </div>
-            </div>
+            <MovieCard 
+              key={movie.id || i} 
+              movie={movie} 
+              onSave={handleSaveMovie}
+            />
           ))}
         </div>
       )}

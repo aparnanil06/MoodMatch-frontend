@@ -11,7 +11,6 @@ export default function FavoritesPage() {
       try {
         const response = await fetch("http://localhost:5001/favorites", {
           method: "GET",
-          credentials: "include"
         });
         const data = await response.json();
         const list = Array.isArray(data)
@@ -35,7 +34,6 @@ export default function FavoritesPage() {
     try {
       const response = await fetch("http://localhost:5001/clear_favorites", {
         method: "POST",
-        credentials: "include",
       });
       const data = await response.json();
       alert(data.message);
